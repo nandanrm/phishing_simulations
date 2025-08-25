@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Awareness Helper</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; color: #222; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+        label { font-weight: 600; }
+        textarea, input[type="text"] { width: 100%; padding: 0.5rem; margin-top: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+        .controls { display: flex; gap: 1rem; align-items: center; margin: 0.5rem 0; flex-wrap: wrap; }
+        .issues { margin-top: 0.5rem; }
+        .issues li { margin: 0.25rem 0; }
+        .status { padding: 0.5rem 0.75rem; border-radius: 6px; display: inline-block; font-weight: 600; }
+        .ok { background: #e6f4ea; color: #137333; border: 1px solid #c6e6cc; }
+        .warn { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        button { background: #1f2937; color: white; border: 0; padding: 0.5rem 0.9rem; border-radius: 6px; cursor: pointer; }
+        button:hover { background: #111827; }
+        .hint { color: #555; font-size: 0.9rem; }
+    </style>
+    <script>
+        function toggleMode(mode) {
+            document.getElementById('mode').value = mode;
+            document.getElementById('input').placeholder = mode === 'url' ? 'e.g. https://login.example.com.verify-session.security-check.com/login' : 'Paste raw email headers here (From, Reply-To, Received, SPF/DKIM results, etc.)';
+            document.getElementById('input').focus();
+        }
+    </script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const current = '{{ mode }}';
+            toggleMode(current || 'url');
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Phishing Awareness Helper</h1>
+        <p class="hint">Enter a URL or paste email headers. We'll highlight common red flags for learning purposes. No data is stored.</p>
+
+        <div class="card">
+            <form method="post">
+                <div class="controls">
+                    <input type="hidden" id="mode" name="mode" value="{{ mode or 'url' }}">
+                    <button type="button" onclick="toggleMode('url')">Analyze URL</button>
+                    <button type="button" onclick="toggleMode('email')">Analyze Email Header</button>
+                </div>
+
+                <label for="input">Input</label>
+                {% if mode == 'url' %}
+                    <input id="input" name="input" type="text" placeholder="e.g. https://login.example.com.verify-session.security-check.com/login" value="{{ input_text | e }}">
+                {% else %}
+                    <textarea id="input" name="input" rows="10" placeholder="Paste raw email headers here">{{ input_text | e }}</textarea>
+                {% endif %}
+
+                <div style="margin-top: 0.75rem;">
+                    <button type="submit">Check</button>
+                </div>
+            </form>
+        </div>
+
+        {% if result %}
+        <div class="card">
+            {% if mode == 'url' %}
+                {% set issues = result.issues %}
+                {% if issues and issues|length > 0 %}
+                    <div class="status warn">Potential issues found ({{ issues|length }})</div>
+                    <ul class="issues">
+                        {% for issue in issues %}
+                            <li>{{ issue }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="status ok">No obvious red flags detected</div>
+                {% endif %}
+            {% else %}
+                {% set issues = result.issues %}
+                {% if issues and issues|length > 0 %}
+                    <div class="status warn">Potential issues found ({{ issues|length }})</div>
+                    <ul class="issues">
+                        {% for issue in issues %}
+                            <li>{{ issue }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="status ok">No obvious red flags detected</div>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <strong>Notes</strong>
+            <ul>
+                <li>This is a learning tool with simple heuristics; false positives/negatives are possible.</li>
+                <li>Check the actual domain, avoid clicking unknown links, and verify via official channels.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
